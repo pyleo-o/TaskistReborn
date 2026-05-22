@@ -485,7 +485,8 @@ class TasksRepository:
                 """
                 SELECT g.id AS gorev_id, g.baslik, g.kritiklik, g.tamamlanma_zamani,
                        l.sure_saniye,
-                       COALESCE(NULLIF(TRIM(a.ad_soyad), ''), a.email) AS atanan_gosterim
+                       COALESCE(NULLIF(TRIM(a.ad_soyad), ''), a.email) AS atanan_gosterim,
+                       g.atanan_kullanici_id
                 FROM Gorevler g
                 LEFT JOIN Islem_Loglari l ON l.gorev_id = g.id AND l.islem_tipi = 'GOREV_ONAY_TAMAMLANDI'
                 LEFT JOIN Kullanicilar a ON a.id = g.atanan_kullanici_id
@@ -495,6 +496,38 @@ class TasksRepository:
                 (int(ekip_id), config.DURUM_TAMAMLANDI),
             )
             return [dict(r) for r in cur.fetchall()]
+
+    @staticmethod
+    def ekip_uye_performans_ozeti(ekip_id: int) -> list[dict[str, Any]]:
+        """Tamamlanan görevlere göre ekip üyesi bazında süre özeti (ekip performans takibi)."""
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT
+                    g.atanan_kullanici_id AS kullanici_id,
+                    COALESCE(NULLIF(TRIM(a.ad_soyad), ''), a.email) AS uye_gosterim,
+                    COUNT(*) AS tamamlanan_adet,
+                    AVG(l.sure_saniye) AS ortalama_saniye,
+                    SUM(l.sure_saniye) AS toplam_saniye
+                FROM Gorevler g
+                INNER JOIN Islem_Loglari l
+                    ON l.gorev_id = g.id AND l.islem_tipi = 'GOREV_ONAY_TAMAMLANDI'
+                LEFT JOIN Kullanicilar a ON a.id = g.atanan_kullanici_id
+                WHERE g.ekip_id = ? AND g.durum = ? AND g.atanan_kullanici_id IS NOT NULL
+                GROUP BY g.atanan_kullanici_id
+                ORDER BY tamamlanan_adet DESC, ortalama_saniye ASC
+                """,
+                (int(ekip_id), config.DURUM_TAMAMLANDI),
+            )
+            rows = []
+            for row in cur.fetchall():
+                d = dict(row)
+                d["ortalama_saniye"] = int(d.get("ortalama_saniye") or 0)
+                d["toplam_saniye"] = int(d.get("toplam_saniye") or 0)
+                d["tamamlanan_adet"] = int(d.get("tamamlanan_adet") or 0)
+                rows.append(d)
+            return rows
 
     @staticmethod
     def gorev_guncelle(

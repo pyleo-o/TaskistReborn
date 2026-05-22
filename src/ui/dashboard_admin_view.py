@@ -319,7 +319,7 @@ class AdminDashboardView(ctk.CTkFrame):
         self._scroll_denetim.pack(fill="both", expand=True)
         ctk.CTkButton(tab_denetim, text="Günlüğü Yenile", command=self._denetim_yenile).pack(pady=6)
 
-        self._scroll_rapor = ctk.CTkScrollableFrame(tab_rapor, label_text="Süre analizi")
+        self._scroll_rapor = ctk.CTkScrollableFrame(tab_rapor, label_text="Ekip performans takibi")
         self._scroll_rapor.pack(fill="both", expand=True)
         btn_rapor = ctk.CTkButton(tab_rapor, text="Raporu Yenile", command=self._rapor_yenile)
         btn_rapor.pack(pady=6)
@@ -844,6 +844,8 @@ class AdminDashboardView(ctk.CTkFrame):
             ).pack(anchor="w", padx=8, pady=4)
 
     def _rapor_yenile(self) -> None:
+        from src.services.analytics_service import sure_metni
+
         for w in self._scroll_rapor.winfo_children():
             w.destroy()
         try:
@@ -851,16 +853,75 @@ class AdminDashboardView(ctk.CTkFrame):
         except Exception as ex:
             ctk.CTkLabel(self._scroll_rapor, text=str(ex)).pack(anchor="w")
             return
+
         ctk.CTkLabel(
             self._scroll_rapor,
-            text=f"Tamamlanan: {rapor['tamamlanan_adet']} | Ortalama süre: {rapor['ortalama_saniye']} sn",
-            font=ctk.CTkFont(weight="bold"),
-        ).pack(anchor="w", padx=8, pady=8)
-        for s in rapor.get("satirlar") or []:
-            sn = s.get("sure_saniye")
+            text="Ekip genel özeti",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).pack(anchor="w", padx=8, pady=(8, 4))
+        ctk.CTkLabel(
+            self._scroll_rapor,
+            text=(
+                f"Tamamlanan görev: {rapor['tamamlanan_adet']}  ·  "
+                f"Ortalama çözüm süresi: {rapor.get('ortalama_metin', rapor['ortalama_saniye'])}  ·  "
+                f"Toplam iş süresi: {rapor.get('toplam_metin', '')}"
+            ),
+            wraplength=560,
+            justify="left",
+        ).pack(anchor="w", padx=12, pady=(0, 8))
+        ctk.CTkLabel(
+            self._scroll_rapor,
+            text="Not: Süre, görevin üstlenilmesi (Kodlanıyor) ile tester onayı (Tamamlandı) arasındaki farktır.",
+            text_color=COLOR_TEXT_MUTED,
+            font=ctk.CTkFont(size=11),
+            wraplength=560,
+        ).pack(anchor="w", padx=12, pady=(0, 10))
+
+        uyeler = rapor.get("uye_ozetleri") or []
+        ctk.CTkLabel(
+            self._scroll_rapor,
+            text="Üye bazında performans",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).pack(anchor="w", padx=8, pady=(4, 4))
+        if not uyeler:
             ctk.CTkLabel(
                 self._scroll_rapor,
-                text=f"#{s.get('gorev_id')} {s.get('baslik')} — {s.get('atanan_gosterim')} — {sn or '?'} sn",
+                text="Henüz tamamlanmış görev yok; performans özeti oluşmaz.",
+                text_color=COLOR_TEXT_MUTED,
+            ).pack(anchor="w", padx=12, pady=4)
+        for u in uyeler:
+            kart = ctk.CTkFrame(self._scroll_rapor, fg_color=("gray90", "gray20"))
+            kart.pack(fill="x", padx=10, pady=4)
+            ctk.CTkLabel(
+                kart,
+                text=u.get("uye_gosterim") or "?",
+                font=ctk.CTkFont(weight="bold"),
+            ).pack(anchor="w", padx=10, pady=(8, 2))
+            ctk.CTkLabel(
+                kart,
+                text=(
+                    f"Tamamlanan: {u.get('tamamlanan_adet', 0)}  ·  "
+                    f"Ortalama: {u.get('ortalama_metin', '')}  ·  "
+                    f"Toplam: {u.get('toplam_metin', '')}  ·  "
+                    f"Aktif görev: {u.get('aktif_gorev', 0)}"
+                ),
+                wraplength=500,
+                justify="left",
+            ).pack(anchor="w", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(
+            self._scroll_rapor,
+            text="Görev detay listesi",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).pack(anchor="w", padx=8, pady=(12, 4))
+        for s in rapor.get("satirlar") or []:
+            sn = int(s.get("sure_saniye") or 0)
+            ctk.CTkLabel(
+                self._scroll_rapor,
+                text=(
+                    f"#{s.get('gorev_id')} {s.get('baslik')} — "
+                    f"{s.get('atanan_gosterim')} — {sure_metni(sn) if sn else '?'}"
+                ),
                 wraplength=520,
             ).pack(anchor="w", padx=12, pady=2)
 

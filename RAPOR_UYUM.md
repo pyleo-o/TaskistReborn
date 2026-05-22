@@ -9,7 +9,8 @@ Bu dosya, **Taskist Reborn** ile final raporunuzun aynı dili konuşması içind
 | Rol: Yönetici, Backend, Frontend, Tester | `Ekip_Uyeleri` + davet paneli rol seçimi |
 | Kod tarayıcı (AST) | `CodeScannerService` + geliştirici paneli |
 | Kritiklik matrisi | `KRITIKLIK_SECENEKLERI`, Kanban üst sıra |
-| Otomatik süre raporu | `AnalyticsService`, `Islem_Loglari` |
+| Otomatik süre / ekip performans takibi | Yönetici → Yönetim → **Performans** sekmesi; ekip + üye özeti, görev listesi |
+| İş hedefi 4 (verimlilik ölçümü) | Atama–tamamlanma süresi `Islem_Loglari`; üstlenme anı `atama_zamani` |
 | Günlük Scrum | `ScrumDialog` (ekibe girince), yönetici özeti |
 | @kullanici arama / davet | Yönetici paneli arama + davet |
 | Kod temiz → Test aşaması | `kod_yukle_ve_teste_gonder` |
