@@ -31,4 +31,4 @@ python main.py
 
 ## GitHub
 
-Proje deposu linkinizi buraya ekleyin.
+https://github.com/pyleo-o/TaskistReborn
