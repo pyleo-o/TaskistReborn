@@ -106,6 +106,21 @@ class AdminTaskService:
             return GorevOlusturSonuc(False, "Seçilen kullanıcı bu ekipte atanabilir geliştirici değil.")
 
         try:
+            aktif = self._repo.atanan_aktif_gorev_sayisi_ekipte(
+                self._ekip_id, int(atanan_kullanici_id)
+            )
+        except Exception as ex:
+            return GorevOlusturSonuc(False, f"Aktif görev sayısı alınamadı: {ex}")
+
+        if aktif >= config.AKTIF_GOREV_UYARI_ESIGI:
+            return GorevOlusturSonuc(
+                False,
+                f"Seçilen yazılımcının üzerinde {aktif} aktif görev var "
+                f"(eşik: {config.AKTIF_GOREV_UYARI_ESIGI}). "
+                "Lütfen başka bir geliştirici seçin (rapor senaryosu A1).",
+            )
+
+        try:
             yeni_id = self._repo.gorev_ekle(
                 ekip_id=self._ekip_id,
                 baslik=b,

@@ -102,6 +102,9 @@ BILDIRIM_TIP_DUYURU = "EKIP_DUYURU"
 EKLER_DIR = os.path.join(_PROJE_KOKU, "assets", "ekler")
 os.makedirs(EKLER_DIR, exist_ok=True)
 
+# --- Görev atama (rapor senaryosu A1: yoğunluk uyarısı) ---
+AKTIF_GOREV_UYARI_ESIGI = 5
+
 # --- Arayüz (tek pencere) ---
 UI_APP_TITLE = "Taskist Reborn"
 UI_DEFAULT_GEOMETRY = "1280x800"

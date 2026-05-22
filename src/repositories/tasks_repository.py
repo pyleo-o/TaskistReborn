@@ -669,6 +669,26 @@ class TasksRepository:
             return [dict(r) for r in cur.fetchall()]
 
     @staticmethod
+    def atanan_aktif_gorev_sayisi_ekipte(ekip_id: int, kullanici_id: int) -> int:
+        """Tamamlanmamış, bu ekipte atanan görev sayısı (yoğunluk uyarısı için)."""
+        durumlar = (
+            config.DURUM_BEKLEMEDE,
+            config.DURUM_KODLANIYOR,
+            config.DURUM_KOD_INCELEMEDE,
+            config.DURUM_TESTTE,
+            config.DURUM_REVIZYON,
+        )
+        ph = ",".join("?" * len(durumlar))
+        sql = f"""
+            SELECT COUNT(*) AS c FROM Gorevler
+            WHERE ekip_id = ? AND atanan_kullanici_id = ? AND durum IN ({ph})
+        """
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(sql, (int(ekip_id), int(kullanici_id)) + durumlar)
+            return int(cur.fetchone()["c"])
+
+    @staticmethod
     def kullanici_gorev_istatistik(kullanici_id: int) -> dict[str, int]:
         with get_connection() as conn:
             cur = conn.cursor()
