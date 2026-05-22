@@ -1,0 +1,4 @@
+# Taskist Reborn — bağımlılıklar
+# (Şu anki adım: yalnızca standart kütüphane + sqlite3; GUI sonraki adımda eklenecek)
+customtkinter>=5.2.0
+pillow>=10.0.0
