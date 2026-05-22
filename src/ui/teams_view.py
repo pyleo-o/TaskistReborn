@@ -63,6 +63,10 @@ class TeamsView(ctk.CTkFrame):
         self._on_profil = on_profil
         self._feat = features_service or FeaturesService()
         self._on_dm = on_dm
+        self._ekip_inline: Optional[ctk.CTkFrame] = None
+        self._ent_ekip_ad: Optional[ctk.CTkEntry] = None
+        self._txt_ekip_aciklama: Optional[ctk.CTkTextbox] = None
+        self._btn_yeni_ekip: Optional[ctk.CTkButton] = None
         self._build()
 
     def _toast(self, msg: str, tip: str = "success") -> None:
@@ -118,9 +122,21 @@ class TeamsView(ctk.CTkFrame):
             text=f"Merhaba, {(ad or '').split()[0] or 'ekip üyesi'}! 👋",
             font=font_baslik(18),
         ).pack(side="left")
-        btn_ekip = btn_primary(h_sat, "+ Yeni ekip", command=self._yeni_ekip_tikla, width=120, height=36)
-        btn_ekip.pack(side="right")
-        tooltip_ekle(btn_ekip, "yeni_ekip")
+        self._btn_yeni_ekip = btn_primary(h_sat, "+ Yeni ekip", command=self._yeni_ekip_toggle, width=120, height=36)
+        self._btn_yeni_ekip.pack(side="right")
+        tooltip_ekle(self._btn_yeni_ekip, "yeni_ekip")
+
+        self._ekip_inline = ctk.CTkFrame(hos, fg_color=("gray92", "gray18"), corner_radius=10)
+        label_field(self._ekip_inline, "Ekip adı").pack(anchor="w", padx=14, pady=(10, 2))
+        self._ent_ekip_ad = ctk.CTkEntry(self._ekip_inline, placeholder_text="Örn: Final Proje Ekibi", height=38)
+        self._ent_ekip_ad.pack(fill="x", padx=14, pady=(0, 8))
+        label_field(self._ekip_inline, "Açıklama (opsiyonel)").pack(anchor="w", padx=14, pady=(0, 2))
+        self._txt_ekip_aciklama = ctk.CTkTextbox(self._ekip_inline, height=56)
+        self._txt_ekip_aciklama.pack(fill="x", padx=14, pady=(0, 8))
+        ekip_btn_sat = ctk.CTkFrame(self._ekip_inline, fg_color="transparent")
+        ekip_btn_sat.pack(fill="x", padx=14, pady=(0, 12))
+        btn_secondary(ekip_btn_sat, "İptal", command=self._ekip_form_kapat, width=90).pack(side="right", padx=(6, 0))
+        btn_primary(ekip_btn_sat, "Oluştur", command=self._ekip_olustur_kaydet, width=100).pack(side="right")
 
         self._tabs = ctk.CTkTabview(self._orta_wrap, fg_color=COLOR_BG_CARD)
         self._tabs.grid(row=1, column=0, sticky="nsew")
@@ -445,14 +461,42 @@ class TeamsView(ctk.CTkFrame):
 
             ctk.CTkButton(sat, text="→", width=32, fg_color="transparent", command=_p).pack(side="right", padx=4)
 
-    def _yeni_ekip_tikla(self) -> None:
-        dlg = ctk.CTkInputDialog(text="Ekip adı:", title="Yeni Ekip")
-        ad = dlg.get_input()
-        if not ad or not str(ad).strip():
+    def _ekip_form_acik_mi(self) -> bool:
+        return bool(self._ekip_inline and self._ekip_inline.winfo_ismapped())
+
+    def _ekip_form_kapat(self) -> None:
+        if self._ekip_inline:
+            self._ekip_inline.pack_forget()
+        if self._btn_yeni_ekip:
+            self._btn_yeni_ekip.configure(text="+ Yeni ekip")
+
+    def _yeni_ekip_toggle(self) -> None:
+        """Tek pencere: ayrı popup yok; form üst kartın altında açılır."""
+        if self._ekip_form_acik_mi():
+            self._ekip_form_kapat()
             return
-        ac = (ctk.CTkInputDialog(text="Açıklama (opsiyonel):", title="Açıklama").get_input() or "").strip()
+        if self._ekip_inline:
+            self._ekip_inline.pack(fill="x", padx=16, pady=(0, 12))
+        if self._btn_yeni_ekip:
+            self._btn_yeni_ekip.configure(text="Formu kapat")
+        if self._ent_ekip_ad:
+            self._ent_ekip_ad.delete(0, "end")
+            self._ent_ekip_ad.focus_set()
+        if self._txt_ekip_aciklama:
+            self._txt_ekip_aciklama.delete("1.0", "end")
+        self._sekme_ac("Çalışma alanları")
+
+    def _ekip_olustur_kaydet(self) -> None:
+        assert self._ent_ekip_ad is not None
+        ad = self._ent_ekip_ad.get().strip()
+        if not ad:
+            self._toast("Ekip adı boş bırakılamaz.", tip="warning")
+            return
+        ac = ""
+        if self._txt_ekip_aciklama:
+            ac = self._txt_ekip_aciklama.get("1.0", "end").strip()
         try:
-            sonuc = self._ws.yeni_ekip_olustur(int(self._user["id"]), str(ad).strip(), ac)
+            sonuc = self._ws.yeni_ekip_olustur(int(self._user["id"]), ad, ac)
         except Exception as ex:
             self._toast(str(ex), tip="error")
             return
@@ -460,7 +504,12 @@ class TeamsView(ctk.CTkFrame):
             self._toast(sonuc.mesaj, tip="warning")
             return
         self._toast("Ekip oluşturuldu.")
+        self._ekip_form_kapat()
         self._listeyi_yenile()
+
+    def _yeni_ekip_tikla(self) -> None:
+        """Boş durum kartı CTA — inline formu açar."""
+        self._yeni_ekip_toggle()
 
     def _listeyi_yenile(self) -> None:
         for w in self._ekip_kutu.winfo_children():
@@ -477,7 +526,7 @@ class TeamsView(ctk.CTkFrame):
                 "Henüz ekip yok",
                 "Üstten yeni ekip oluşturun.",
                 cta_metin="+ Yeni ekip",
-                cta_command=self._yeni_ekip_tikla,
+                cta_command=self._yeni_ekip_toggle,
             ).pack(fill="x", pady=12)
             return
         grid = ctk.CTkFrame(self._ekip_kutu, fg_color="transparent")

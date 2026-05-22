@@ -289,7 +289,6 @@ class SocialRepository:
                     int(kullanici_id),
                     int(kullanici_id),
                     int(kullanici_id),
-                    int(kullanici_id),
                     int(limit),
                 ),
             )
